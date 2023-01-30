@@ -21,17 +21,8 @@ sem_t * sem_id2;
 
 /*Socket descriptor for client or server mode*/
 int sockfd;
-
-/*IT*/
-int mode;
-int portno;
-int sockfd;
-int clilen;
 int newsockfd;
-
-struct sockaddr_in serv_addr; /*Server address*/
-struct sockaddr_in cli_addr; /*Server address*/
-struct hostent *server;
+int mode;
 
 /* Save the current bitmap object to 
 out directory starting from 0 */
@@ -127,67 +118,74 @@ int main(int argc, char *argv[]) {
                 
             } break;
             case 2:{
-                /*Server mode*/
+               /*Server Mode*/
 
-                portno = atoi(argv[2]);
-                /*Check on port number*/
+                struct sockaddr_in serv_addr;
+                struct sockaddr_in cli_addr;
+                int portno, clilen;
 
                 sockfd = socket(AF_INET, SOCK_STREAM, 0);
-                if (sockfd < 0) error("ERROR opening socket");
+                if(sockfd < 0) {
+                    error("ERROR opening socket");
+                } 
+
                 bzero((char *) &serv_addr, sizeof(serv_addr));
+
+                portno = atoi(argv[2]);
 
                 serv_addr.sin_family = AF_INET;
                 serv_addr.sin_addr.s_addr = INADDR_ANY;
                 serv_addr.sin_port = htons(portno);
 
-                if (
-                    bind(
-                        sockfd, 
-                        (struct sockaddr *) &serv_addr,
-                        sizeof(serv_addr)
-                    )
-                < 0) error("ERROR on binding");
+                if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+                    error("ERROR on binding");
+                }   
 
                 listen(sockfd,5);
                 clilen = sizeof(cli_addr);
-                newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-                if (newsockfd < 0) error("ERROR on accept");
 
-                /*Ready*/
+                newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+                if (newsockfd < 0) {
+                    error("ERROR on accept");
+                }
 
             } break;
             case 3:{
-                /*Client mode*/                
-                
+                /*client case*/
+
+                int portno, clilen;
+                struct sockaddr_in serv_addr;
+                struct hostent *server;
+
+                char buffer[256];int n;
+               
                 portno = atoi(argv[2]);
-                /*Check on port number*/
 
                 sockfd = socket(AF_INET, SOCK_STREAM, 0);
-                if (sockfd < 0) error("ERROR opening socket");
+                if (sockfd < 0) {
+                    error("ERROR opening socket");
+                }
 
                 server = gethostbyname(argv[3]);
-
                 if (server == NULL) {
                     fprintf(stderr,"ERROR, no such host\n");
                     exit(0);
-                }
+                }  
+
                 bzero((char *) &serv_addr, sizeof(serv_addr));
                 serv_addr.sin_family = AF_INET;
-                bcopy(
-                    (char *)server->h_name,
-                    (char *)&serv_addr.sin_addr.s_addr,
-                    server->h_length
-                );
+
+                bcopy((char *)server->h_addr, 
+                (char *)&serv_addr.sin_addr.s_addr,
+                server->h_length);
+
                 serv_addr.sin_port = htons(portno);
-                if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) error("ERROR connecting");
 
-                /*Ready*/                
+                if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) {
+                    error("ERROR connecting");
+                }
 
-            } break;
-
-            default:{
-                
-            }break;
+            }
         }
 
     }
@@ -257,47 +255,36 @@ int main(int argc, char *argv[]) {
 
         if(mode == 2){
             /*Server mode*/
-            char cmd;
-            if(read(newsockfd,cmd,1) != 1){                
-                int t = atoi(cmd);
-
-                switch (t) {
-                    case UP:{
-                        int cmd_tmp = KEY_UP;
-                        draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        move_circle(cmd_tmp);
-                        draw__colored_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        draw_circle();
-                    } break;
-                    case DOWN:{
-                        int cmd_tmp = KEY_DOWN;
-                        draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        move_circle(cmd_tmp);
-                        draw__colored_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        draw_circle();
-                    } break;
-                    case RIGHT:{
-                        int cmd_tmp = KEY_RIGHT;
-                        draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        move_circle(cmd_tmp);
-                        draw__colored_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        draw_circle();
-                    } break;
-                    case LEFT:{
-                        int cmd_tmp = KEY_LEFT;
-                        draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        move_circle(cmd_tmp);
-                        draw__colored_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
-                        draw_circle();
-                    } break;
-                    
-                    /*Sync with Shared memory image*/
-                    load_bmp_to_shm(bmp, ptr);
-                    
-                }
+            char input_string[8];
+           
+            if(read(newsockfd,input_string,1) != 1){                
+                /*Error*/
             }else{
-                /*Problem*/
+                /*Select case*/
+               char c = input_string[0];
+               
+               switch (c) {
+                    case 'u':{
+                            cmd = KEY_UP;
+                    }break;
+                    case 'd':{
+                            cmd = KEY_DOWN;
+                    }break;
+                    case 'r':{
+                            cmd = KEY_RIGHT;
+                    }break;
+                    case 'l':{
+                            cmd = KEY_LEFT;
+                    }break;                
+                }
+                draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
+                move_circle(cmd);
+                draw__colored_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
+                draw_circle();
+                /*Sync with Shared memory image*/
+                load_bmp_to_shm(bmp, ptr);
             }
+            
         }
 
         // If input is an arrow key, move circle accordingly...
@@ -315,22 +302,23 @@ int main(int argc, char *argv[]) {
                 }break;                
                 case 3:{
                     /*Client mode*/
-                    char msg;
+                     
+                    char * msg;
                     switch (cmd) {
                         case KEY_UP:{
-                            cmd = UP;
+                            msg = UP;
                         } break;
                         case KEY_DOWN:{
-                            cmd = DOWN;
+                            msg = DOWN;
                         } break;
                         case KEY_RIGHT:{
-                            cmd = RIGHT;
+                            msg = RIGHT;
                         } break;
                         case KEY_LEFT:{
-                            cmd = LEFT;
+                            msg = LEFT;
                         } break;                       
-                    }
-                    if(write(sockfd,msg,1) != 1){
+                    }                    
+                    if(write(sockfd, msg, 1) != 1){
                         error("ERROR writing to socket");
                     }else{
                         draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
@@ -339,7 +327,8 @@ int main(int argc, char *argv[]) {
                         draw_circle();
                         /*Sync with Shared memory image*/
                         load_bmp_to_shm(bmp, ptr);
-                    }                    
+                   }                       
+         
                 }break;
             }
 

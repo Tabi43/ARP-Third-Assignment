@@ -25,10 +25,10 @@
 #include <netinet/in.h>
 
 /*CONV*/
-#define UP 1
-#define DOWN 2
-#define RIGHT 3
-#define LEFT 4
+#define UP "u"
+#define DOWN "d"
+#define RIGHT "r"
+#define LEFT "l"
 
 /*Parameters*/
 const int SM_WIDTH = 1600;
@@ -54,3 +54,32 @@ const int SHM_SIZE = SM_WIDTH*SM_HEIGHT*4;
 
 #define sem_path_1 "/sem_AV_1" //Sem_procuder
 #define sem_path_2 "/sem_AV_2" //Sem_consumer
+
+int write_log(char * path, char * tag, char * msg){
+  /*Try to write the msg log to the desired path*/
+  char buffer[512];
+  int DIM_BUFFER = 512;
+  snprintf(buffer, DIM_BUFFER, "\n[%s] : %s\0",tag , msg);
+  int fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if(fd < 0){
+    perror("opening log file");
+    return -1;
+  }else{   
+    int n = str_len(buffer);
+    if(write(fd, buffer, n) != n){
+      perror("writing log file");
+      return -1;
+    }else{
+      close(fd);
+      return 0;
+    }
+  } 
+}
+
+int str_len(char * str){
+	int i ;
+	for(i = 0; i < 1024; i++){
+		if(str[i] == '\0') return i; 
+	}
+	return i;
+}
