@@ -30,29 +30,30 @@ int main() {
   char buffer_A[512];
   int DIM_BUFFER = 512;
 
-  printf("Select execution mode: \n 1. Normal \n 2. Server \n 3. Client \n");
-  scanf("%d", &mode);
+  //printf("Select execution mode: \n 1. Normal \n 2. Server \n 3. Client \n");
+  //scanf("%d", &mode);
 
   if(mode == 2) {
     /*Server mod*/
 
-    printf("Enter the port of the companion application: ");
-    scanf("%d", &port);
+    //printf("Enter the port of the companion application: ");
+    //scanf("%d", &port);
 
     /*Check for Port ?*/
 
   }else if(mode == 3){
 
-    printf("Enter the address of the companion application: ");
-    scanf("%s", &address);
-    printf("Enter the port of the companion application: ");
-    scanf("%d", &port);
+    //printf("Enter the address of the companion application: ");
+    //scanf("%s", &address);
+    //printf("Enter the port of the companion application: ");
+    //scanf("%d", &port);
 
     /*Check for Port ?*/
   } 
 
   snprintf(buffer_A, DIM_BUFFER, "./bin/processA %d %d %s" ,mode, port, address);
-  char * arg_list_A[] = {"/usr/bin/konsole", "-e", buffer_A, NULL };
+  
+  char * arg_list_A[] = {"/usr/bin/konsole", "-e", "./bin/processA", NULL };
   char * arg_list_B[] = {"/usr/bin/konsole", "-e", "./bin/processB", NULL };
 
   /*Istantiate Shared Memory*/
