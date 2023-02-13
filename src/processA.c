@@ -25,6 +25,8 @@ int newsockfd;
 int mode;
 char address[256] = "";
 
+struct sigaction ignore_action;
+
 /* Save the current bitmap object to 
 out directory starting from 0 */
 bool take_snapshot(){
@@ -101,7 +103,7 @@ after a resize of the window*/
 void reset_bmp(bmpfile_t * bmp) {
     for(int i = 0; i < SM_WIDTH; i++){
         for(int j = 0; j < SM_HEIGHT; j++){
-               bmp_set_pixel(bmp, i, j, empty_pixel);
+            bmp_set_pixel(bmp, i, j, empty_pixel);
         }
     }
 }
@@ -193,9 +195,15 @@ int main(int argc, char *argv[]) {
 
                 if(r != 0){
                     printf("Error during connection...\n");
-                }   
+                }                   
             
             }while(r != 0);
+
+            /* Ignore the SIGINT signal throw when client try to 
+            write to a closed socket */
+            memset(&ignore_action, 0, sizeof(ignore_action));
+            ignore_action.sa_handler = SIG_IGN;
+            sigaction(SIGUSR1, &ignore_action, NULL);
         }
     }
 
@@ -265,9 +273,12 @@ int main(int argc, char *argv[]) {
         if(mode == 2){
             /*Server mode*/
             char input_string[5];
-           
-            if(read(newsockfd,input_string,5) != 5){                
-                /*Error*/
+
+            int n = read(newsockfd,input_string,5);
+
+            if(n != 5){                
+                /*Error / Socket closed from the other side*/
+                close(newsockfd); //Close the socket from the server side                              
             }else{                
                 /*Select case*/
                 int com = atoi(input_string);
@@ -303,9 +314,15 @@ int main(int argc, char *argv[]) {
                     /*Client mode*/
                     char str_cmd[5];
                     snprintf(str_cmd, 5, "%d",cmd);
-                                    
-                    if(write(sockfd, str_cmd, 5) != 5){
-                        error("ERROR writing to socket");
+
+                    int n = write(sockfd, str_cmd, 5);                
+
+                    if(n != 5) {
+                        if(errno == EPIPE) {
+                            close(sockfd); //Close the socket from the server side       
+                                                
+                        }
+                        perror("Socket error");
                     }else{
                         draw__empty_circle_bmp(bmp, floor(circle.x*scale_x), floor(circle.y*scale_y));
                         move_circle(cmd);
