@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
 
             int n = read(newsockfd,input_string,5);
 
-            if(n != 5){                
+            if(n < 3){                
                 /*Error / Socket closed from the other side*/
                 close(newsockfd); //Close the socket from the server side                              
             }else{                
